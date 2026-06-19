@@ -27,7 +27,7 @@ void render_focus(const LightMod& m, FocusPhase phase) {
   if (phase == FOCUS_ARRIVAL) {
     float breath = (sinf((millis() / 6000.0f) * 6.28318f) + 1.0f) * 0.5f;
     uint8_t val = 100 + (uint8_t)(breath * 100);
-    CRGB orange(255, 90, 15);
+    CRGB orange(255, 40, 0);
     orange.nscale8_video(val);
     fill_solid(leds, NUMPIXELS, orange);
     return;

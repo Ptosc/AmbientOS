@@ -52,13 +52,19 @@ void loop() {
   const bool active = (presence > 0.02f) || always_on;
   const VisualState target = {mode, focus_phase, active};
 
-  transition_begin_if_changed(target);
+  transition_begin_if_changed(target, last_unscaled);
 
-  if (transition_is_active()) {
+  const bool was_transitioning = transition_is_active();
+
+  if (was_transitioning) {
     render_visual_state_to(new_frame, target);
     transition_output(leds);
   } else {
     render_visual_state_to(leds, target);
+  }
+
+  for (int i = 0; i < NUMPIXELS; i++) {
+    last_unscaled[i] = leds[i];
   }
 
   apply_brightness(mod.brightness);

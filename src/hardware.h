@@ -30,6 +30,7 @@ extern CRGB leds[NUMPIXELS];
 extern CRGB status_led[STATUS_LED_COUNT];
 extern CRGB prev_frame[NUMPIXELS];
 extern CRGB new_frame[NUMPIXELS];
+extern CRGB last_unscaled[NUMPIXELS];
 
 // Sensor state (written by Input layer, read by Logic/Render callers)
 extern int raw_distance;
@@ -57,7 +58,7 @@ static const unsigned long FOCUS_WARMUP_MS = 10000;
 
 extern FocusPhase focus_phase;
 
-static const unsigned long TRANSITION_MS = 1100;
+static const unsigned long TRANSITION_MS = 800;
 
 struct VisualState {
   int mode;
@@ -113,7 +114,7 @@ void update_status();
 void trigger_zone(uint8_t zone, CRGB color);
 
 // --- Transitions ---
-void transition_begin_if_changed(const VisualState& target);
+void transition_begin_if_changed(const VisualState& target, const CRGB* prev_unscaled);
 bool transition_is_active();
 void transition_output(CRGB* dst);
 VisualState transition_get_displayed_state();
