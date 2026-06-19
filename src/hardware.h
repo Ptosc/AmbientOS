@@ -60,6 +60,13 @@ extern FocusPhase focus_phase;
 
 static const unsigned long TRANSITION_MS = 800;
 
+// Focus candle (WLED Candle Multi port)
+static const unsigned CANDLE_FRAME_MS = 25;
+static const uint8_t CANDLE_SPEED = 96;
+static const uint8_t CANDLE_INTENSITY = 224;
+static const CRGB FOCUS_CANDLE_BRIGHT(255, 40, 0);
+static const CRGB FOCUS_CANDLE_DIM(50, 6, 0);
+
 struct VisualState {
   int mode;
   FocusPhase focus_phase;
@@ -111,6 +118,9 @@ void render_focus(const LightMod& mod, FocusPhase phase);
 void render_aurora(const LightMod& m);
 void render_rainbow(const LightMod& mod);
 void render_visual_state_to(CRGB* buf, const VisualState& vs);
+void focus_candle_reset();
+void render_focus_candle(CRGB* out);
+void render_focus_candle(CRGB* out, CRGB bright, CRGB dim);
 void update_status();
 void trigger_zone(uint8_t zone, CRGB color);
 

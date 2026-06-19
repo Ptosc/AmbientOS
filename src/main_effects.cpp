@@ -22,11 +22,18 @@ void render_aurora(const LightMod& m) {
 
 void render_focus(const LightMod& m, FocusPhase phase) {
   (void)m;
+  static FocusPhase rendered_phase = FOCUS_NONE;
 
   if (phase == FOCUS_ARRIVAL) {
-    fill_solid(leds, NUMPIXELS, CRGB(255, 40, 0));
+    rendered_phase = FOCUS_ARRIVAL;
+    render_focus_candle(leds, FOCUS_CANDLE_BRIGHT, FOCUS_CANDLE_DIM);
     return;
   }
+
+  if (rendered_phase == FOCUS_ARRIVAL) {
+    focus_candle_reset();
+  }
+  rendered_phase = phase;
 
   fill_solid(leds, NUMPIXELS, CRGB(40, 100, 255));
 }

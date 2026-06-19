@@ -11,6 +11,7 @@ void update_focus_session() {
     focus_deep_at = 0;
     focus_phase = FOCUS_NONE;
     focus_phase_manual = false;
+    focus_candle_reset();
     return;
   }
 
