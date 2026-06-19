@@ -102,6 +102,7 @@ void handle_mode_buttons(ButtonEvent e);
 void update_state();
 void update_focus_session();
 void skip_focus_warmup();
+void toggle_focus_color();
 void compute_modulation();
 
 // --- Render layer (no input reads, no state mutation) ---
