@@ -14,17 +14,12 @@ float presence = 0.0;
 float sensor_presence = 0.0; // from active sensor (mmWave)
 
 int mode = 0;
-const int max_modes = 4; // rainbow, warm, distance, off
+const int max_modes = 4; // off, focus, aurora, rainbow
 bool always_on = false;
+
+FocusPhase focus_phase = FOCUS_NONE;
 
 LightMod mod;
 
 // Define potentiometers in a single place (global definitions)
 Poti poti  = {32, 0};
-
-// Transition state
-bool transitioning = false;
-uint16_t transition_step = 0;
-uint16_t transition_steps_total = TRANSITION_FRAMES;
-int displayed_mode = 0;
-int target_mode = 0;

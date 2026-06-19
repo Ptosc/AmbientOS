@@ -31,13 +31,6 @@ extern CRGB status_led[STATUS_LED_COUNT];
 extern CRGB prev_frame[NUMPIXELS];
 extern CRGB new_frame[NUMPIXELS];
 
-// Transition state
-extern bool transitioning;
-extern uint16_t transition_step;
-extern uint16_t transition_steps_total;
-extern int displayed_mode;
-extern int target_mode;
-
 // Sensor state (written by Input layer, read by Logic/Render callers)
 extern int raw_distance;
 extern int filtered_distance;
@@ -47,7 +40,30 @@ extern float sensor_presence;
 // Mode state (mode changed only via handle_mode_buttons)
 extern int mode;
 extern const int max_modes;
+static const int MODE_OFF = 0;
+static const int MODE_FOCUS = 1;
+static const int MODE_AURORA = 2;
+static const int MODE_RAINBOW = 3;
 extern bool always_on;
+
+// Focus session (mode 1): arrival warmup -> deep focus
+enum FocusPhase {
+  FOCUS_NONE = 0,
+  FOCUS_ARRIVAL,
+  FOCUS_DEEP,
+};
+
+static const unsigned long FOCUS_WARMUP_MS = 10000;
+
+extern FocusPhase focus_phase;
+
+static const unsigned long TRANSITION_MS = 1100;
+
+struct VisualState {
+  int mode;
+  FocusPhase focus_phase;
+  bool active;
+};
 
 // Modulation (computed by Logic layer, passed into Render)
 struct LightMod {
@@ -83,15 +99,26 @@ ButtonEvent poll_buttons();
 // --- Logic layer ---
 void handle_mode_buttons(ButtonEvent e);
 void update_state();
+void update_focus_session();
+void skip_focus_warmup();
 void compute_modulation();
 
 // --- Render layer (no input reads, no state mutation) ---
 void render_off();
-void render_focus(const LightMod& mod);
-void render_distance(int distance_cm);
+void render_focus(const LightMod& mod, FocusPhase phase);
+void render_aurora(const LightMod& m);
 void render_rainbow(const LightMod& mod);
+void render_visual_state_to(CRGB* buf, const VisualState& vs);
 void update_status();
 void trigger_zone(uint8_t zone, CRGB color);
+
+// --- Transitions ---
+void transition_begin_if_changed(const VisualState& target);
+bool transition_is_active();
+void transition_output(CRGB* dst);
+VisualState transition_get_displayed_state();
+VisualState transition_get_target_state();
+unsigned long transition_elapsed_ms();
 
 // --- Encoder (position read only, IRQ-driven) ---
 long get_encoder1_pos();
@@ -103,8 +130,6 @@ void set_mmwave_debounce(unsigned long ms);
 int get_mmwave_threshold_on_cm();
 int get_mmwave_threshold_off_cm();
 unsigned long get_mmwave_debounce_ms();
-
-#define TRANSITION_FRAMES 30
 
 // Internal implementations (src/inputs/)
 void init_encoders_impl();
