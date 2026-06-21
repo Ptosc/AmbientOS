@@ -109,3 +109,16 @@ void init_encoders_impl() {
 
 long get_encoder1_pos_impl() { return _enc1.get_pos(); }
 long get_encoder2_pos_impl() { return _enc2.get_pos(); }
+
+void poll_encoders_impl() {
+  EncEvent ev;
+  ev.ts = micros();
+
+  ev.enc = 1;
+  ev.state = (digitalRead(encoder1_a_pin) << 1) | digitalRead(encoder1_b_pin);
+  _enc1.process_event(ev);
+
+  ev.enc = 2;
+  ev.state = (digitalRead(encoder2_a_pin) << 1) | digitalRead(encoder2_b_pin);
+  _enc2.process_event(ev);
+}

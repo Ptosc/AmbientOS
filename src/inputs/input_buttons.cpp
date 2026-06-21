@@ -52,6 +52,15 @@ ButtonEvent poll_buttons() {
   return BUTTON_NONE;
 }
 
+bool button_is_held(ButtonEvent btn) {
+  switch (btn) {
+    case BUTTON_T1: return is_pressed(0);
+    case BUTTON_T2: return is_pressed(1);
+    case BUTTON_T3: return is_pressed(2);
+    default: return false;
+  }
+}
+
 uint8_t read_poti_impl(Poti& p) {
   const float POTI_SMOOTH_FACTOR = 0.1f;
   long sum = 0;

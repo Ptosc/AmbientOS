@@ -43,8 +43,7 @@ extern int mode;
 extern const int max_modes;
 static const int MODE_OFF = 0;
 static const int MODE_FOCUS = 1;
-static const int MODE_AURORA = 2;
-static const int MODE_RAINBOW = 3;
+static const int MODE_SHOWCASE = 2;
 extern bool always_on;
 
 // Focus session (mode 1): arrival warmup -> deep focus
@@ -54,7 +53,7 @@ enum FocusPhase {
   FOCUS_DEEP,
 };
 
-static const unsigned long FOCUS_WARMUP_MS = 10000;
+static const unsigned long FOCUS_WARMUP_MS = 30000;
 
 extern FocusPhase focus_phase;
 
@@ -103,6 +102,7 @@ enum ButtonEvent {
 void init_inputs();
 void poll_inputs();
 ButtonEvent poll_buttons();
+bool button_is_held(ButtonEvent btn);
 
 // --- Logic layer ---
 void handle_mode_buttons(ButtonEvent e);
@@ -112,11 +112,14 @@ void skip_focus_warmup();
 void toggle_focus_color();
 void compute_modulation();
 
+void showcase_reset();
+void showcase_update(int16_t enc1_delta, int16_t enc2_delta, unsigned long now_ms);
+void update_showcase_inputs();
+
 // --- Render layer (no input reads, no state mutation) ---
 void render_off();
 void render_focus(const LightMod& mod, FocusPhase phase);
-void render_aurora(const LightMod& m);
-void render_rainbow(const LightMod& mod);
+void render_showcase();
 void render_visual_state_to(CRGB* buf, const VisualState& vs);
 void focus_candle_reset();
 void render_focus_candle(CRGB* out);
@@ -148,6 +151,7 @@ void init_encoders_impl();
 void init_buttons_impl();
 void init_mmwave_impl();
 void read_mmwave_impl();
+void poll_encoders_impl();
 long get_encoder1_pos_impl();
 long get_encoder2_pos_impl();
 uint8_t read_poti_impl(Poti& p);

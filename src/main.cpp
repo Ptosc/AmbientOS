@@ -29,7 +29,6 @@ void setup() {
 
   Serial.begin(115200);
   Serial.println("BOOT");
-  Serial.setDebugOutput(true);
 }
 
 static void apply_brightness(uint8_t brightness) {
@@ -47,9 +46,11 @@ void loop() {
   update_focus_session();
   compute_modulation();
 
+  const bool active = (presence > 0.02f) || always_on;
+  update_showcase_inputs();
+
   update_status();
 
-  const bool active = (presence > 0.02f) || always_on;
   const VisualState target = {mode, focus_phase, active};
 
   transition_begin_if_changed(target, last_unscaled);
@@ -69,45 +70,8 @@ void loop() {
 
   apply_brightness(mod.brightness);
 
-  static unsigned long last_debug = 0;
-  if (millis() - last_debug >= 250) {
-    last_debug = millis();
-    VisualState displayed = transition_get_displayed_state();
-    VisualState tstate = transition_get_target_state();
-    Serial.printf(
-      "\n========== DEBUG ==========\n"
-      "Time        : %lu ms\n"
-      "Mode        : %d\n"
-      "Target      : mode=%d phase=%d active=%d\n"
-      "Displayed   : mode=%d phase=%d active=%d\n"
-      "Transition  : %s (%lu/%lu ms)\n"
-      "Presence    : %d %%\n"
-      "Distance    : %d cm\n"
-      "Raw Dist    : %d cm\n"
-      "Brightness  : %d\n"
-      "ColorMode   : %d\n"
-      "FocusPhase  : %d\n"
-      "Encoder 1   : %ld\n"
-      "Encoder 2   : %ld\n"
-      "===========================\n",
-      millis(),
-      mode,
-      tstate.mode, (int)tstate.focus_phase, tstate.active ? 1 : 0,
-      displayed.mode, (int)displayed.focus_phase, displayed.active ? 1 : 0,
-      transition_is_active() ? "YES" : "NO",
-      transition_elapsed_ms(),
-      TRANSITION_MS,
-      (int)(presence * 100.0f),
-      filtered_distance,
-      raw_distance,
-      mod.brightness,
-      mod.color_mode,
-      (int)focus_phase,
-      get_encoder1_pos(),
-      get_encoder2_pos());
-  }
-
   FastLED.show();
+  poll_encoders_impl();
   delay(1);
   yield();
 }

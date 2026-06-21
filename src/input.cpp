@@ -9,6 +9,7 @@ void init_inputs() {
 }
 
 void poll_inputs() {
+  poll_encoders_impl();
   read_mmwave_impl();
   g_poti_raw = read_poti_impl(poti);
 }
