@@ -107,10 +107,12 @@ bool button_is_held(ButtonEvent btn);
 // --- Logic layer ---
 void handle_mode_buttons(ButtonEvent e);
 void update_state();
+bool user_is_present();
 void update_focus_session();
 void skip_focus_warmup();
 void toggle_focus_color();
 void compute_modulation();
+void update_mode_button_pending();
 
 void showcase_reset();
 void showcase_update(int16_t enc1_delta, int16_t enc2_delta, unsigned long now_ms);
@@ -126,6 +128,7 @@ void render_focus_candle(CRGB* out);
 void render_focus_candle(CRGB* out, CRGB bright, CRGB dim);
 void update_status();
 void trigger_zone(uint8_t zone, CRGB color);
+void trigger_status_shutdown();
 
 // --- Transitions ---
 void transition_begin_if_changed(const VisualState& target, const CRGB* prev_unscaled);

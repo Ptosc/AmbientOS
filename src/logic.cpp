@@ -7,7 +7,7 @@ static long last_showcase_enc1 = 0;
 static long last_showcase_enc2 = 0;
 
 void update_focus_session() {
-  const bool present = (presence > 0.02f) || always_on;
+  const bool present = user_is_present();
   const bool in_focus = (mode == MODE_FOCUS);
 
   if (!in_focus || !present) {
@@ -50,7 +50,7 @@ static void handle_mode_change() {
   }
 
   if (mode == MODE_FOCUS) {
-    const bool already_at_desk = (presence > 0.02f) || always_on;
+    const bool already_at_desk = user_is_present();
     focus_phase_manual = false;
     if (already_at_desk) {
       focus_deep_at = millis();
@@ -79,10 +79,44 @@ void update_showcase_inputs() {
   last_showcase_enc2 = enc2;
 }
 
-void handle_mode_buttons(ButtonEvent e) {
-  static unsigned long last_mode_change_ms = 0;
-  const unsigned long MODE_DEBOUNCE_MS = 250;
+static const unsigned long T2_DOUBLE_CLICK_MS = 400;
+static unsigned long t2_last_click_ms = 0;
+static bool t2_pending_single = false;
 
+static void cycle_light_mode() {
+  if (mode == MODE_OFF || mode == MODE_SHOWCASE) {
+    mode = MODE_FOCUS;
+  } else {
+    mode = MODE_SHOWCASE;
+  }
+  handle_mode_change();
+}
+
+static bool handle_t2_click() {
+  const unsigned long now = millis();
+
+  if (t2_pending_single && (now - t2_last_click_ms) <= T2_DOUBLE_CLICK_MS) {
+    t2_pending_single = false;
+    mode = MODE_OFF;
+    handle_mode_change();
+    trigger_status_shutdown();
+    return true;
+  }
+
+  t2_pending_single = true;
+  t2_last_click_ms = now;
+  return false;
+}
+
+void update_mode_button_pending() {
+  if (!t2_pending_single) return;
+  if (millis() - t2_last_click_ms <= T2_DOUBLE_CLICK_MS) return;
+
+  t2_pending_single = false;
+  cycle_light_mode();
+}
+
+void handle_mode_buttons(ButtonEvent e) {
   switch (e) {
     case BUTTON_T1:
       skip_focus_warmup();
@@ -90,12 +124,9 @@ void handle_mode_buttons(ButtonEvent e) {
       break;
 
     case BUTTON_T2:
-      if (millis() - last_mode_change_ms >= MODE_DEBOUNCE_MS) {
-        mode = (mode + 1) % max_modes;
-        last_mode_change_ms = millis();
-        handle_mode_change();
+      if (!handle_t2_click()) {
+        trigger_zone(1, CRGB::Green);
       }
-      trigger_zone(1, CRGB::Green);
       break;
 
     case BUTTON_T3:

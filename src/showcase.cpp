@@ -9,7 +9,7 @@ static const float SHOWCASE_BASE_RATE = 0.045f;
 static const uint8_t SHOWCASE_FADE_SLOW = 18;
 static const uint8_t SHOWCASE_FADE_FAST = 40;
 static const uint8_t SHOWCASE_BLUR_AMOUNT = 64;
-static const uint8_t SHOWCASE_BLUR_EVERY_N_FRAMES = 2;
+static const unsigned long SHOWCASE_MAX_DT_MS = 32;
 
 static const int SHOWCASE_TRAIL_LEN = 12;
 static const int SHOWCASE_COLLISION_DIST = 8;
@@ -40,7 +40,6 @@ static uint8_t palette_idx = 0;
 static float pos_left = 0.0f;
 static float pos_right = 0.0f;
 static unsigned long last_ms = 0;
-static uint8_t blur_frame = 0;
 static uint8_t collision_flash = 0;
 static unsigned long last_collision_ms = 0;
 
@@ -62,9 +61,15 @@ static int showcase_wrap_index(int index) {
 }
 
 static int showcase_comet_distance(float a, float b) {
-  int d = abs((int)(a + 0.5f) - (int)(b + 0.5f));
-  if (d > NUMPIXELS / 2) d = NUMPIXELS - d;
-  return d;
+  float d = fabsf(a - b);
+  if (d > (float)NUMPIXELS * 0.5f) d = (float)NUMPIXELS - d;
+  return (int)(d + 0.5f);
+}
+
+static float showcase_wrap_pos(float pos) {
+  pos = fmodf(pos, (float)NUMPIXELS);
+  if (pos < 0.0f) pos += (float)NUMPIXELS;
+  return pos;
 }
 
 static void showcase_add_pixel(int index, CRGB color) {
@@ -72,29 +77,48 @@ static void showcase_add_pixel(int index, CRGB color) {
   leds[index] += color;
 }
 
-static void showcase_draw_trail(int center, uint8_t hue, int behind_sign) {
+static void showcase_add_pixel_subpixel(float pos, CRGB color) {
+  pos = showcase_wrap_pos(pos);
+  const int base = (int)pos;
+  const float frac = pos - (float)base;
+
+  if (frac < 0.002f) {
+    showcase_add_pixel(base, color);
+    return;
+  }
+
+  const uint8_t w1 = (uint8_t)(frac * 255.0f + 0.5f);
+  const uint8_t w0 = 255 - w1;
+
+  CRGB c0 = color;
+  c0.nscale8_video(w0);
+  showcase_add_pixel(base, c0);
+
+  CRGB c1 = color;
+  c1.nscale8_video(w1);
+  showcase_add_pixel(showcase_wrap_index(base + 1), c1);
+}
+
+static void showcase_draw_trail(float center, uint8_t hue, int behind_sign) {
   const uint8_t trail_scale = (uint8_t)constrain(
       (int)(SHOWCASE_TRAIL_LEN - (speed - SHOWCASE_SPEED_MIN) * 3.0f), 6, SHOWCASE_TRAIL_LEN);
 
   for (int i = 1; i <= trail_scale; i++) {
-    const int idx = showcase_wrap_index(center - behind_sign * i);
+    const float trail_pos = center - behind_sign * (float)i;
     const uint8_t val = (uint8_t)(200 - i * (180 / SHOWCASE_TRAIL_LEN));
     const uint8_t sat = (uint8_t)constrain(255 - i * 8, 180, 255);
-    showcase_add_pixel(idx, CHSV(hue, sat, val));
+    showcase_add_pixel_subpixel(trail_pos, CHSV(hue, sat, val));
   }
 }
 
-static void showcase_draw_head(int center, uint8_t hue) {
+static void showcase_draw_head(float center, uint8_t hue) {
   for (int i = 0; i < HEAD_LED_COUNT; i++) {
     const CRGB c = CHSV(hue, HEAD_SAT[i], HEAD_VAL[i]);
-    showcase_add_pixel(showcase_wrap_index(center + HEAD_OFFSETS[i]), c);
+    showcase_add_pixel_subpixel(center + (float)HEAD_OFFSETS[i], c);
   }
 }
 
 static void showcase_apply_blur() {
-  blur_frame++;
-  if (blur_frame < SHOWCASE_BLUR_EVERY_N_FRAMES) return;
-  blur_frame = 0;
   blur1d(leds, NUMPIXELS, SHOWCASE_BLUR_AMOUNT);
 }
 
@@ -136,7 +160,6 @@ void showcase_reset() {
   pos_left = 0.0f;
   pos_right = (float)(NUMPIXELS - 1);
   last_ms = 0;
-  blur_frame = 0;
   collision_flash = 0;
   last_collision_ms = 0;
 }
@@ -156,7 +179,8 @@ void showcase_update(int16_t enc1_delta, int16_t enc2_delta, unsigned long now_m
 
   speed += (speed_target - speed) * 0.2f;
 
-  const unsigned long dt = now_ms - last_ms;
+  unsigned long dt = now_ms - last_ms;
+  if (dt > SHOWCASE_MAX_DT_MS) dt = SHOWCASE_MAX_DT_MS;
   last_ms = now_ms;
   const float step = speed * (float)dt * SHOWCASE_BASE_RATE;
 
@@ -178,16 +202,13 @@ void render_showcase() {
 
   fadeToBlackBy(leds, NUMPIXELS, showcase_fade_amount(speed));
 
-  // Trails before blur — left comet moves +, trail behind at lower indices
-  showcase_draw_trail(head_left, palette.hue_a, 1);
-  // Right comet moves -, trail behind at higher indices
-  showcase_draw_trail(head_right, palette.hue_b, -1);
+  showcase_draw_trail(pos_left, palette.hue_a, 1);
+  showcase_draw_trail(pos_right, palette.hue_b, -1);
 
   showcase_apply_blur();
 
   showcase_draw_collision_flash(head_left, head_right, palette.hue_a);
 
-  // Sharp heads on top of softened trails
-  showcase_draw_head(head_left, palette.hue_a);
-  showcase_draw_head(head_right, palette.hue_b);
+  showcase_draw_head(pos_left, palette.hue_a);
+  showcase_draw_head(pos_right, palette.hue_b);
 }

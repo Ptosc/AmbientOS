@@ -3,7 +3,15 @@
 static float intensity_smooth = 0.0f;
 
 void update_state() {
-  presence = presence * 0.90f + sensor_presence * 0.10f;
+  if (sensor_presence > presence) {
+    presence = presence * 0.4f + sensor_presence * 0.6f;
+  } else {
+    presence = presence * 0.88f + sensor_presence * 0.12f;
+  }
+}
+
+bool user_is_present() {
+  return always_on || sensor_presence > 0.5f || presence > 0.02f;
 }
 
 void compute_modulation() {

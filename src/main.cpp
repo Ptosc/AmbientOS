@@ -41,12 +41,13 @@ static void apply_brightness(uint8_t brightness) {
 void loop() {
   poll_inputs();
   handle_mode_buttons(poll_buttons());
+  update_mode_button_pending();
 
   update_state();
   update_focus_session();
   compute_modulation();
 
-  const bool active = (presence > 0.02f) || always_on;
+  const bool active = user_is_present();
   update_showcase_inputs();
 
   update_status();

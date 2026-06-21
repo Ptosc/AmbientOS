@@ -9,11 +9,12 @@
 static const int MMWAVE_BAUD = 115200;
 static const int MMWAVE_RX_PIN = 34;
 static const int MMWAVE_TX_PIN = 16;
-static const float MMW_ALPHA = 0.2f;
+static const float MMW_ALPHA = 0.4f;
 // thresholds in CENTIMETERS (modifiable at runtime)
 static int _mmw_thresh_on = 120;   // cm
 static int _mmw_thresh_off = 180;  // cm
-static unsigned long _mmw_debounce_ms = 800;
+static unsigned long _mmw_debounce_on_ms = 200;
+static unsigned long _mmw_debounce_off_ms = 700;
 
 static HardwareSerial mmSerial(2);
 
@@ -25,7 +26,8 @@ static size_t line_idx = 0;
 static int raw_range_cm = -1;
 static float filtered_range_cm = 0.0f;
 static bool mm_active = false;
-static unsigned long mm_crossed_since = 0;
+static unsigned long mm_on_candidate_since = 0;
+static unsigned long mm_off_candidate_since = 0;
 static bool _last_mm_active = false; // for reduced debug
 
 void set_mmwave_thresholds(int on_cm, int off_cm) {
@@ -37,15 +39,15 @@ void set_mmwave_thresholds(int on_cm, int off_cm) {
 }
 
 void set_mmwave_debounce(unsigned long ms) {
-  _mmw_debounce_ms = ms;
+  _mmw_debounce_off_ms = ms;
 #ifdef MMWAVE_DEBUG
-  Serial.printf("[MMW] debounce set: %lums\n", _mmw_debounce_ms);
+  Serial.printf("[MMW] debounce off set: %lums\n", _mmw_debounce_off_ms);
 #endif
 }
 
 int get_mmwave_threshold_on_cm() { return _mmw_thresh_on; }
 int get_mmwave_threshold_off_cm() { return _mmw_thresh_off; }
-unsigned long get_mmwave_debounce_ms() { return _mmw_debounce_ms; }
+unsigned long get_mmwave_debounce_ms() { return _mmw_debounce_off_ms; }
 
 void init_mmwave_impl() {
   mmSerial.begin(MMWAVE_BAUD, SERIAL_8N1, MMWAVE_RX_PIN, MMWAVE_TX_PIN);
@@ -87,25 +89,29 @@ void read_mmwave_impl() {
   }
 
   unsigned long now = millis();
-  bool in_range = (filtered_range_cm > 0.0f) && (filtered_range_cm <= _mmw_thresh_on);
-  bool out_range = (filtered_range_cm >= _mmw_thresh_off);
+  // Raw for fast ON, filtered for stable OFF
+  const bool in_range = (raw_range_cm > 0) && (raw_range_cm <= _mmw_thresh_on);
+  const bool out_range = (filtered_range_cm > 0.0f) && (filtered_range_cm >= _mmw_thresh_off);
 
   if (!mm_active) {
     if (in_range) {
-      if (mm_crossed_since == 0) mm_crossed_since = now;
-      if ((now - mm_crossed_since) >= _mmw_debounce_ms) {
+      if (mm_on_candidate_since == 0) mm_on_candidate_since = now;
+      if ((now - mm_on_candidate_since) >= _mmw_debounce_on_ms) {
         mm_active = true;
-        mm_crossed_since = now;
+        mm_off_candidate_since = 0;
       }
     } else {
-      mm_crossed_since = 0;
+      mm_on_candidate_since = 0;
     }
   } else {
     if (out_range) {
-      if ((now - mm_crossed_since) >= _mmw_debounce_ms) {
+      if (mm_off_candidate_since == 0) mm_off_candidate_since = now;
+      if ((now - mm_off_candidate_since) >= _mmw_debounce_off_ms) {
         mm_active = false;
-        mm_crossed_since = now;
+        mm_on_candidate_since = 0;
       }
+    } else {
+      mm_off_candidate_since = 0;
     }
   }
 
