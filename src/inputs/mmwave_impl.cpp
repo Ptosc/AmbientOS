@@ -9,11 +9,11 @@
 static const int MMWAVE_BAUD = 115200;
 static const int MMWAVE_RX_PIN = 34;
 static const int MMWAVE_TX_PIN = 16;
-static const float MMW_ALPHA = 0.4f;
+static const float MMW_ALPHA = 0.55f;
 // thresholds in CENTIMETERS (modifiable at runtime)
 static int _mmw_thresh_on = 120;   // cm
 static int _mmw_thresh_off = 180;  // cm
-static unsigned long _mmw_debounce_on_ms = 200;
+static unsigned long _mmw_debounce_on_ms = 50;
 static unsigned long _mmw_debounce_off_ms = 700;
 
 static HardwareSerial mmSerial(2);

@@ -3,12 +3,20 @@
 static VisualState displayed_state = {MODE_OFF, FOCUS_NONE, false};
 static VisualState transition_target = {MODE_OFF, FOCUS_NONE, false};
 static unsigned long transition_start_ms = 0;
+static unsigned long transition_duration_ms = TRANSITION_MS;
 static bool transitioning = false;
 
 static bool visual_state_equals(const VisualState& a, const VisualState& b) {
   return a.mode == b.mode
       && a.focus_phase == b.focus_phase
       && a.active == b.active;
+}
+
+static unsigned long transition_ms_for(const VisualState& from, const VisualState& to) {
+  if (from.mode == to.mode && from.focus_phase == to.focus_phase && from.active != to.active) {
+    return TRANSITION_PRESENCE_MS;
+  }
+  return TRANSITION_MS;
 }
 
 static float ease_in_out(float t) {
@@ -40,6 +48,7 @@ void transition_begin_if_changed(const VisualState& target, const CRGB* prev_uns
     if (!visual_state_equals(transition_target, target)) {
       capture_frame(prev_frame, prev_unscaled);
       transition_target = target;
+      transition_duration_ms = transition_ms_for(displayed_state, target);
       transition_start_ms = millis();
     }
     return;
@@ -49,6 +58,7 @@ void transition_begin_if_changed(const VisualState& target, const CRGB* prev_uns
 
   capture_frame(prev_frame, prev_unscaled);
   transition_target = target;
+  transition_duration_ms = transition_ms_for(displayed_state, target);
   transition_start_ms = millis();
   transitioning = true;
 }
@@ -60,7 +70,7 @@ bool transition_is_active() {
 void transition_output(CRGB* dst) {
   if (!transitioning) return;
 
-  float t = (float)(millis() - transition_start_ms) / (float)TRANSITION_MS;
+  float t = (float)(millis() - transition_start_ms) / (float)transition_duration_ms;
   if (t >= 1.0f) {
     transitioning = false;
     displayed_state = transition_target;
@@ -80,7 +90,7 @@ VisualState transition_get_target_state() {
 }
 
 unsigned long transition_elapsed_ms() {
-  if (!transitioning) return TRANSITION_MS;
+  if (!transitioning) return transition_duration_ms;
   unsigned long elapsed = millis() - transition_start_ms;
-  return (elapsed > TRANSITION_MS) ? TRANSITION_MS : elapsed;
+  return (elapsed > transition_duration_ms) ? transition_duration_ms : elapsed;
 }

@@ -15,7 +15,7 @@ float presence = 0.0;
 float sensor_presence = 0.0; // from active sensor (mmWave)
 
 int mode = 0;
-const int max_modes = 3; // off, focus, showcase
+const int max_modes = 4; // off, focus, showcase, canvas
 bool always_on = false;
 
 FocusPhase focus_phase = FOCUS_NONE;

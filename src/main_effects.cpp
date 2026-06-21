@@ -19,7 +19,7 @@ void render_focus(const LightMod& m, FocusPhase phase) {
   }
   rendered_phase = phase;
 
-  fill_solid(leds, NUMPIXELS, CRGB(40, 100, 255));
+  fill_solid(leds, NUMPIXELS, CHSV(focus_deep_hue_val(), focus_deep_sat_val(), FOCUS_DEEP_VAL));
 }
 
 void render_visual_state_to(CRGB* buf, const VisualState& vs) {
@@ -34,6 +34,9 @@ void render_visual_state_to(CRGB* buf, const VisualState& vs) {
       break;
     case MODE_SHOWCASE:
       render_showcase();
+      break;
+    case MODE_CANVAS:
+      render_canvas(millis());
       break;
     default:
       render_off();

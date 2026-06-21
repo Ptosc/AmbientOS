@@ -5,6 +5,14 @@ static bool focus_phase_manual = false;
 static int last_mode = MODE_OFF;
 static long last_showcase_enc1 = 0;
 static long last_showcase_enc2 = 0;
+static long last_focus_enc1 = 0;
+static long last_focus_enc2 = 0;
+static long last_canvas_enc1 = 0;
+static long last_canvas_enc2 = 0;
+
+static const uint8_t CANVAS_EVENING_HUE = 5;
+static const uint8_t CANVAS_EVENING_SAT = 215;
+static int schedule_last_hour = -1;
 
 void update_focus_session() {
   const bool present = user_is_present();
@@ -50,6 +58,8 @@ static void handle_mode_change() {
   }
 
   if (mode == MODE_FOCUS) {
+    last_focus_enc1 = get_encoder1_pos();
+    last_focus_enc2 = get_encoder2_pos();
     const bool already_at_desk = user_is_present();
     focus_phase_manual = false;
     if (already_at_desk) {
@@ -60,6 +70,11 @@ static void handle_mode_change() {
       focus_deep_at = 0;
       focus_phase = FOCUS_NONE;
     }
+  }
+
+  if (mode == MODE_CANVAS) {
+    last_canvas_enc1 = get_encoder1_pos();
+    last_canvas_enc2 = get_encoder2_pos();
   }
 
   last_mode = mode;
@@ -79,15 +94,87 @@ void update_showcase_inputs() {
   last_showcase_enc2 = enc2;
 }
 
+void update_focus_inputs() {
+  if (mode != MODE_FOCUS) return;
+
+  focus_tuning_tick();
+
+  if (focus_phase == FOCUS_NONE) return;
+
+  const long enc1 = get_encoder1_pos();
+  const long enc2 = get_encoder2_pos();
+  const int16_t d1 = (int16_t)(enc1 - last_focus_enc1);
+  const int16_t d2 = (int16_t)(enc2 - last_focus_enc2);
+
+  focus_tuning_update(d1, d2, focus_phase);
+
+  last_focus_enc1 = enc1;
+  last_focus_enc2 = enc2;
+}
+
+void update_canvas_inputs() {
+  if (mode != MODE_CANVAS) return;
+
+  canvas_tuning_tick();
+
+  const long enc1 = get_encoder1_pos();
+  const long enc2 = get_encoder2_pos();
+  const int16_t d1 = (int16_t)(enc1 - last_canvas_enc1);
+  const int16_t d2 = (int16_t)(enc2 - last_canvas_enc2);
+
+  canvas_tuning_update(d1, d2);
+
+  last_canvas_enc1 = enc1;
+  last_canvas_enc2 = enc2;
+}
+
+void update_daynight_schedule() {
+  if (!schedule_time_valid()) return;
+
+  const bool present = user_is_present();
+  static bool was_present = false;
+  const bool session_start = present && !was_present;
+  was_present = present;
+
+  if (!present) return;
+
+  const int hour = schedule_local_hour();
+  if (hour < 0) return;
+
+  const bool focus_slot = schedule_in_focus_hours(hour);
+  const bool hour_changed = (schedule_last_hour != hour);
+  schedule_last_hour = hour;
+
+  if (!hour_changed && !session_start) return;
+
+  if (focus_slot) {
+    if (mode != MODE_FOCUS) {
+      mode = MODE_FOCUS;
+      handle_mode_change();
+    }
+    return;
+  }
+
+  canvas_apply_defaults(CANVAS_EVENING_HUE, CANVAS_EVENING_SAT);
+  if (mode != MODE_CANVAS) {
+    mode = MODE_CANVAS;
+    handle_mode_change();
+  }
+}
+
 static const unsigned long T2_DOUBLE_CLICK_MS = 400;
 static unsigned long t2_last_click_ms = 0;
 static bool t2_pending_single = false;
 
 static void cycle_light_mode() {
-  if (mode == MODE_OFF || mode == MODE_SHOWCASE) {
+  if (mode == MODE_OFF) {
     mode = MODE_FOCUS;
-  } else {
+  } else if (mode == MODE_FOCUS) {
     mode = MODE_SHOWCASE;
+  } else if (mode == MODE_SHOWCASE) {
+    mode = MODE_CANVAS;
+  } else {
+    mode = MODE_FOCUS;
   }
   handle_mode_change();
 }

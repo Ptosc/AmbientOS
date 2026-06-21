@@ -29,6 +29,8 @@ void setup() {
 
   Serial.begin(115200);
   Serial.println("BOOT");
+
+  schedule_init();
 }
 
 static void apply_brightness(uint8_t brightness) {
@@ -45,10 +47,13 @@ void loop() {
 
   update_state();
   update_focus_session();
+  update_daynight_schedule();
   compute_modulation();
 
   const bool active = user_is_present();
   update_showcase_inputs();
+  update_canvas_inputs();
+  update_focus_inputs();
 
   update_status();
 

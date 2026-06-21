@@ -44,6 +44,7 @@ extern const int max_modes;
 static const int MODE_OFF = 0;
 static const int MODE_FOCUS = 1;
 static const int MODE_SHOWCASE = 2;
+static const int MODE_CANVAS = 3;
 extern bool always_on;
 
 // Focus session (mode 1): arrival warmup -> deep focus
@@ -58,6 +59,7 @@ static const unsigned long FOCUS_WARMUP_MS = 30000;
 extern FocusPhase focus_phase;
 
 static const unsigned long TRANSITION_MS = 800;
+static const unsigned long TRANSITION_PRESENCE_MS = 280;
 
 // Focus candle (WLED Candle Multi port)
 static const unsigned CANDLE_FRAME_MS = 25;
@@ -65,6 +67,9 @@ static const uint8_t CANDLE_SPEED = 96;
 static const uint8_t CANDLE_INTENSITY = 224;
 static const CRGB FOCUS_CANDLE_BRIGHT(255, 40, 0);
 static const CRGB FOCUS_CANDLE_DIM(50, 6, 0);
+static const uint8_t FOCUS_DEEP_HUE = 160;
+static const uint8_t FOCUS_DEEP_SAT = 180;
+static const uint8_t FOCUS_DEEP_VAL = 220;
 
 struct VisualState {
   int mode;
@@ -113,10 +118,23 @@ void skip_focus_warmup();
 void toggle_focus_color();
 void compute_modulation();
 void update_mode_button_pending();
+void update_daynight_schedule();
+
+void schedule_init();
+bool schedule_time_valid();
+int schedule_local_hour();
+bool schedule_in_focus_hours(int hour);
 
 void showcase_reset();
 void showcase_update(int16_t enc1_delta, int16_t enc2_delta, unsigned long now_ms);
 void update_showcase_inputs();
+
+void canvas_apply_defaults(uint8_t default_hue, uint8_t default_sat);
+void canvas_tuning_tick();
+void canvas_tuning_update(int16_t enc1_delta, int16_t enc2_delta);
+void render_canvas(unsigned long now_ms);
+uint8_t canvas_hue_val();
+void update_canvas_inputs();
 
 // --- Render layer (no input reads, no state mutation) ---
 void render_off();
@@ -126,6 +144,14 @@ void render_visual_state_to(CRGB* buf, const VisualState& vs);
 void focus_candle_reset();
 void render_focus_candle(CRGB* out);
 void render_focus_candle(CRGB* out, CRGB bright, CRGB dim);
+
+void focus_tuning_update(int16_t enc1_delta, int16_t enc2_delta, FocusPhase phase);
+void focus_tuning_tick();
+void update_focus_inputs();
+uint8_t focus_candle_speed_val();
+uint8_t focus_candle_intensity_val();
+uint8_t focus_deep_hue_val();
+uint8_t focus_deep_sat_val();
 void update_status();
 void trigger_zone(uint8_t zone, CRGB color);
 void trigger_status_shutdown();
