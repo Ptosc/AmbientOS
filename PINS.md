@@ -1,84 +1,98 @@
 # Pin‑Map & Wiring — AmbientOS (ESP32)
 
 ## Übersicht
+
 - Board: ESP32 (Arduino core)
-- Projekt: AmbientOS (LED‑Strip + Ultraschall + Potis + Button)
-- Serielle Konsole: 115200 Baud (für Live‑Debug im Serial Monitor)
+- Projekt: AmbientOS — LED‑Streifen, Status‑LEDs, mmWave‑Präsenz, Poti, Taster, Rotary Encoder
+- Serielle Konsole: 115200 Baud
 
 ## Pin‑Map
-| GPIO | Symbol / Name      | Rolle                                | Richtung  | Hinweise / Details |
-|------:|--------------------|--------------------------------------|-----------|--------------------|
-| 5     | PIN                | LED‑Strip Data (WS2812B)             | Ausgang   | FastLED; bei 5V‑Strip Level‑Shifter empfehlen |
-| 18    | taster_pin         | Button (Mode cycle)                  | Eingang   | INPUT_PULLUP; Taster zwischen GPIO und GND (active LOW) |
-| 19    | taster2_pin        | Button 2                             | Eingang   | INPUT_PULLUP |
-| 21    | taster3_pin        | Button 3                             | Eingang   | INPUT_PULLUP |
-| 16    | trig_pin           | HC‑SR04 TRIG                         | Ausgang   | 10µs Pulse via digitalWrite/delayMicroseconds |
-| 4     | echo_pin           | HC‑SR04 ECHO                         | Eingang   | ECHO ist 5V — unbedingt Pegelwandlung (z.B. Spannungsteiler) ! |
-| 32    | poti_pin           | Potentiometer (Intensität)           | ADC1      | ADC1_CH4; Spannungsteilung: 0..3.3V; analogRead -> 0..4095 (zweite Reihe) |
-| 25    | encoder1_a_pin     | Rotary Encoder 1 — A (CLK)           | Eingang   | INPUT_PULLUP; interruptfähig, Richtung per B lesen |
-| 26    | encoder1_b_pin     | Rotary Encoder 1 — B (DT)            | Eingang   | INPUT_PULLUP |
-| 27    | encoder1_btn_pin   | Rotary Encoder 1 — Push Button       | Eingang   | INPUT_PULLUP; active LOW |
-| 13    | encoder2_a_pin     | Rotary Encoder 2 — A (CLK)           | Eingang   | INPUT_PULLUP; interruptfähig, Richtung per B lesen |
-| 22    | encoder2_b_pin     | Rotary Encoder 2 — B (DT)            | Eingang   | INPUT_PULLUP |
-| 14    | encoder2_btn_pin   | Rotary Encoder 2 — Push Button       | Eingang   | INPUT_PULLUP; active LOW |
 
+| GPIO | Symbol / Name           | Rolle                              | Richtung  | Hinweise |
+|-----:|-------------------------|------------------------------------|-----------|----------|
+| 5    | `PIN`                   | Haupt‑LED‑Strip Data (WS2812B)     | Ausgang   | 107 LEDs; FastLED |
+| 33   | `STATUS_PIN`            | Status‑LED‑Strip Data (WS2812B)    | Ausgang   | 6 LEDs |
+| 23   | `taster1_pin`           | Taster T1                          | Eingang   | INPUT_PULLUP; active LOW |
+| 18   | `taster2_pin`           | Taster T2 (Modus)                  | Eingang   | INPUT_PULLUP; Kurz = Moduswechsel, Doppelklick = Aus |
+| 17   | `taster3_pin`           | Taster T3                          | Eingang   | INPUT_PULLUP |
+| 19   | `taster_encoder1_pin`   | Encoder 1 — Push                   | Eingang   | INPUT_PULLUP |
+| 21   | `taster_encoder2_pin`   | Encoder 2 — Push                   | Eingang   | INPUT_PULLUP |
+| 16   | `mmwave_tx_pin`         | mmWave UART TX (ESP → Modul RX)    | Ausgang   | Serial2, 115200 Baud |
+| 34   | `mmwave_rx_pin`         | mmWave UART RX (ESP ← Modul TX)    | Eingang   | Nur Input; ADC2‑Pin, kein WiFi‑Konflikt bei UART |
+| 32   | `poti_pin`              | Potentiometer (Helligkeit)         | ADC1      | ADC1_CH4; 0..3,3 V |
+| 25   | `encoder1_a_pin`        | Rotary Encoder 1 — A (CLK)         | Eingang   | INPUT_PULLUP; IRQ |
+| 26   | `encoder1_b_pin`        | Rotary Encoder 1 — B (DT)          | Eingang   | INPUT_PULLUP; IRQ |
+| 13   | `encoder2_a_pin`        | Rotary Encoder 2 — A (CLK)         | Eingang   | INPUT_PULLUP; IRQ |
+| 22   | `encoder2_b_pin`        | Rotary Encoder 2 — B (DT)          | Eingang   | INPUT_PULLUP; IRQ |
 
-## Kurz‑Wiring (Beispiele)
-- LED‑Strip (WS2812B)
-  - Strip 5V -> Versorgung (bei 5V Strip)
-  - Strip GND -> ESP32 GND (gemeinsame Masse!)
-  - Strip DIN -> GPIO5 (Data)
+## Taster‑Funktionen
 
-- HC‑SR04
-  - VCC -> 5V (oder 3.3V je nach Modul)
-  - GND -> ESP32 GND
-  - TRIG -> GPIO16
-  - ECHO -> Spannungsteiler (z. B. 1k + 2k) -> GPIO4 (max 3.3V)
+| Taster | GPIO | Funktion |
+|--------|-----:|----------|
+| T1 | 23 | Focus‑Warm‑up überspringen |
+| T2 | 18 | Modus wechseln (Focus → Showcase → Canvas); Doppelklick = Aus |
+| T3 | 17 | In Focus: zwischen Kerze und Deep Focus umschalten |
+| Enc1‑Push | 19 | — (nicht als Modus‑Taster gemappt) |
+| Enc2‑Push | 21 | — (nicht als Modus‑Taster gemappt) |
 
-- Poti (z. B. 10k)
-  - Poti linker Pin -> 3.3V
-  - Poti rechter Pin -> GND
-  - Mittelkontakt -> GPIO32 (poti_pin)
+## Kurz‑Wiring
 
-- Taster (erste Reihe)
-  - Mode -> GPIO18
-  - Taster2 -> GPIO19
-  - Taster3 -> GPIO21
-  - GND -> ESP32 GND
+### LED‑Streifen (WS2812B)
 
-- Rotary Encoder 1 (A/B + Push) — zweite Reihe
-  - A (CLK) -> GPIO25 (`encoder1_a_pin`)  
-  - B (DT)  -> GPIO26 (`encoder1_b_pin`)  
-  - SW      -> GPIO27 (`encoder1_btn_pin`) 
-  - GND     -> ESP32 GND
+- Haupt‑Strip (107 LEDs): DIN → GPIO **5**, 5 V + GND (gemeinsame Masse mit ESP32)
+- Status‑Strip (6 LEDs): DIN → GPIO **33**, 5 V + GND
 
-- Rotary Encoder 2 (A/B + Push) — zweite Reihe
-  - A (CLK) -> GPIO13 (`encoder2_a_pin`)  
-  - B (DT)  -> GPIO22 (`encoder2_b_pin`)  
-  - SW      -> GPIO14 (`encoder2_btn_pin`) 
-  - GND     -> ESP32 GND
+Bei 5 V‑Strips Level‑Shifter auf der Datenleitung empfohlen. 470 µF nahe der Strip‑Versorgung.
 
-## Wichtige Hinweise / Best Practices
-- Gemeinsame Masse: Immer GND zwischen ESP32, Sensoren und LED‑Versorgung verbinden.
-- ECHO (HC‑SR04) ist häufig 5V — NICHT direkt an ESP32 anschließen. Verwende Spannungsteiler oder Logik‑Level‑Shifter.
-- WS2812B Data: Wenn Strip mit 5V betrieben wird, kann ein Level‑Shifter die Zuverlässigkeit verbessern. Einige Strips arbeiten aber direkt mit 3.3V Datenpegel.
-- ADC: Verwende ADC1 (GPIO32/33) — ADC2 kann Probleme bei aktiviertem WiFi haben.
-- Serielle Konsole: Verwende 115200 Baud (Serial.begin(115200) ist im Code vorhanden).
+### mmWave (UART, z. B. LD2410)
 
-## Debug / Serial
-- Aktiv: Serial Monitor auf 115200 öffnen.
-- Der Code schreibt periodisch Debug‑Zeilen (t, mode, transition, distance, presence, intensity).
-- Falls du CSV‑ oder JSON‑Output willst, sag Bescheid — passe ich an.
+- Modul VCC → 3,3 V oder 5 V (je nach Modul)
+- Modul GND → ESP32 GND
+- Modul **RX** → GPIO **16** (ESP TX)
+- Modul **TX** → GPIO **34** (ESP RX)
 
-## Dateien im Projekt
-- `src/hardware.h` — zentrale Pin‑Definitionen und globale Deklarationen
-- `src/main.cpp` — Setup, Loop, Serial‑Debug
-- `src/input.cpp` — Button, Ultraschall, Potis
-- `src/modulation.cpp` — Potimeter‑Smoothing und Intensity
-- `src/effects.cpp` — Render‑Funktionen
+Abstandswerte in **Zentimetern**; Standard‑Schwellen: Präsenz an ≤ 120 cm, aus ≥ 180 cm.
 
-## Empfohlene Bauteile
-- Logic Level Shifter (bidirektional) oder N‑Kanal MOSFET/74HCTxx für Data‑Level shifting
-- HC‑SR04 (Ultraschall) + 1k/2k Spannungsteiler für ECHO
-- 10k Potentiometer
-- 470µF Kondensator nahe LED‑Strip Versorgung
+### Potentiometer (z. B. 10 kΩ)
+
+- Außenpins → 3,3 V und GND
+- Mittelabgriff → GPIO **32**
+
+### Taster
+
+Alle Taster: eine Seite an GPIO, andere Seite an **GND** (intern Pull‑up).
+
+| Taster | GPIO |
+|--------|-----:|
+| T1 | 23 |
+| T2 | 18 |
+| T3 | 17 |
+| Encoder 1 Push | 19 |
+| Encoder 2 Push | 21 |
+
+### Rotary Encoder
+
+| Signal | Encoder 1 | Encoder 2 |
+|--------|----------:|----------:|
+| A (CLK) | 25 | 13 |
+| B (DT)  | 26 | 22 |
+| SW      | 19 | 21 |
+| GND     | gemeinsam | gemeinsam |
+
+## Wichtige Hinweise
+
+- **Gemeinsame Masse** zwischen ESP32, Sensoren, Tastern und LED‑Versorgung.
+- **GPIO 34** ist reiner Eingang — nur als UART RX nutzen, nicht als Ausgang verdrahten.
+- **ADC1** (GPIO 32) für das Poti — ADC2 kann bei aktivem WiFi stören; GPIO 34 ist für UART RX in Ordnung.
+- **WS2812B**: Datenpegel bei 5 V‑Strips ggf. über Level‑Shifter; Masse immer verbinden.
+- **Serial Monitor**: 115200 Baud (`Serial.begin(115200)`).
+
+## Relevante Dateien
+
+| Datei | Inhalt |
+|-------|--------|
+| `src/main.cpp` | Pin‑Konstanten (`taster*_pin`, Encoder, mmWave, Poti) |
+| `src/hardware.h` | LED‑Pins (`PIN`, `STATUS_PIN`), Deklarationen |
+| `src/inputs/mmwave_impl.cpp` | mmWave UART (Serial2, 115200) |
+| `src/inputs/input_buttons.cpp` | Taster‑Initialisierung und Abfrage |
+| `src/inputs/input_encoders.cpp` | Encoder IRQ und Positionszähler |

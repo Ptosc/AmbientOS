@@ -10,8 +10,8 @@ static long last_focus_enc2 = 0;
 static long last_canvas_enc1 = 0;
 static long last_canvas_enc2 = 0;
 
-static const uint8_t CANVAS_EVENING_HUE = 5;
-static const uint8_t CANVAS_EVENING_SAT = 215;
+static const uint8_t CANVAS_EVENING_HUE = 3;
+static const uint8_t CANVAS_EVENING_SAT = 240;
 static int schedule_last_hour = -1;
 
 void update_focus_session() {

@@ -5,8 +5,8 @@ static const float CANVAS_SAT_STEP = 3.0f;
 static const float CANVAS_SMOOTH = 0.055f;
 static const uint8_t CANVAS_VAL = 220;
 
-static const uint8_t CANVAS_DEFAULT_HUE = 0;
-static const uint8_t CANVAS_DEFAULT_SAT = 180;
+static const uint8_t CANVAS_DEFAULT_HUE = 3;
+static const uint8_t CANVAS_DEFAULT_SAT = 240;
 
 static float hue = CANVAS_DEFAULT_HUE;
 static float hue_target = CANVAS_DEFAULT_HUE;
